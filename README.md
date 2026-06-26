@@ -39,3 +39,5 @@ Total 15
 > - Setiap masing-masing anggota kelompok wajib membuat  get post put delete (masing-masing minimal 1), jadi misal dalam dalam 1 kelompok ada 4 orang berarti minimal total jumlah endpoint adalah 16
 
 Konfigurasi awal sudah ada, tinggal bikin endpoint aja
+
+**PAT ikuti yang ada di project WS**
