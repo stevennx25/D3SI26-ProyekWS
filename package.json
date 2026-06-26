@@ -1,0 +1,29 @@
+{
+  "name": "d3si26-proyekws",
+  "version": "1.0.0",
+  "description": "Project WS ini akan digunakan sebagai backend untuk FPW juga",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stevennx25/D3SI26-ProyekWS.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/stevennx25/D3SI26-ProyekWS/issues"
+  },
+  "homepage": "https://github.com/stevennx25/D3SI26-ProyekWS#readme",
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongodb": "^7.4.0",
+    "multer": "^2.2.0",
+    "nodemon": "^3.1.14"
+  }
+}
