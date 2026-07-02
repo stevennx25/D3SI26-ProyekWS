@@ -25,6 +25,12 @@ const upload = multer({ storage: multerStorageConf });
 require('dotenv').config();
 // JWT
 const jwt = require('jsonwebtoken');
+// Mongoose
+const mongoose = require('mongoose');
+const urlDatabase = process.env.DATABASE_URL + process.env.DATABASE_NAME; 
+mongoose.connect(urlDatabase)
+  .then(() => console.log('Koneksi ke MongoDB berhasil'))
+  .catch((err) => console.error('Koneksi gagal:', err));
 
 // KODINGAN SEGALA MACAM DITARUH DI BAWAH
 
