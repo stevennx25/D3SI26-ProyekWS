@@ -22,8 +22,8 @@ const dosenSchema = new mongoose.Schema({
     },
     prodi: {
       type: String,
-      required: true,
       trim: true,
+      default: "Dosen umum"
     },
     fotoProfil: {
       type: String,
