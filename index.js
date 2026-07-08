@@ -38,33 +38,76 @@ mongoose.connect(urlDatabase)
 const Alumni = require("./MongooseModel/Alumni")
 const Dosen = require("./MongooseModel/Dosen")
 const PendaftaranMaba = require("./MongooseModel/PendaftaranMaba")
+const ProjectMahasiswa = require("./MongooseModel/ProjectMahasiswa")
 // Mongoose seeder manual
 async function seederMongo() {
   console.log("Seeder manual dijalankan")
   // hapus data dummy yang ada di server
   await Alumni.deleteMany({})
   await Dosen.deleteMany({})
+  await ProjectMahasiswa.deleteMany({})
   // seeding
   const { generateData } = require("./MongooseSeeder/DummyData")
   // workaround faker biar ndak nyantol random state nya
   delete require.cache[require.resolve("./MongooseSeeder/DummyData")];
-  const { DummyAlumni, DummyDosen } = generateData(10)
+  const { DummyAlumni, DummyDosen, DummyProjectMahasiswa } = generateData(40)
   await Alumni.insertMany(DummyAlumni)
   await Dosen.insertMany(DummyDosen)
+  await ProjectMahasiswa.insertMany(DummyProjectMahasiswa)
 }
 
 // KODINGAN SEGALA MACAM DITARUH DI BAWAH
 
 // Endpoint khusus FPW
-// List dosen
+// get List dosen
 app.get('/api/react/dosen/list', async (req, res) => {
   const listDosen = await Dosen.find()
   return res.status(200).json(listDosen)
 })
-// List alumni
+// get List alumni
 app.get('/api/react/alumni/list', async (req, res) => {
   const listAlumni = await Alumni.find()
   return res.status(200).json(listAlumni)
+})
+// get List pendaftaran maba
+app.get('/api/react/registrasi/list', async (req, res) => {
+  const listRegistrasiEntry = await PendaftaranMaba.find()
+  return res.status(200).json(listRegistrasiEntry)
+})
+// Post entry pendfataran maba
+app.post('/api/react/registrasi/baru', async (req, res) => {
+  const { nama_lengkap, no_hp, email, prodi_pilihan, pesan } = req.body
+  try {
+    const daftarkanMaba = await PendaftaranMaba.insertOne(
+      {
+        namaLengkap: nama_lengkap,
+        noHp: no_hp,
+        email: email,
+        pesan: pesan,
+        prodiPilihan: prodi_pilihan,
+        fileIjazah: "Path/Ke/Ijazah"
+      }
+    )
+    console.log(daftarkanMaba)
+    return res.status(201).json({
+      Pesan: "Berhasil mendaftarkan calon pendaftar baru"
+    })
+  } catch (e) {
+    if (e.name == 'ValidationError') {
+      return res.status(400).json({
+        Pesan: "Ada field yang kosong yang diperlukan"
+      })
+    } else {
+      return res.status(500).json({
+        Pesan: "Gagal mendaftarkan mahasiswa baru karena kesalahan server"
+      })
+    }
+  }
+})
+// get List project mahasiswa
+app.get('/api/react/projectmhs/list', async (req, res) => {
+  const listProjectMhs = await ProjectMahasiswa.find()
+  return res.status(200).json(listProjectMhs)
 })
 
 // STARTER SERVER EXPRESS

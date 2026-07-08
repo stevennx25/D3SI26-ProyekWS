@@ -4,6 +4,17 @@ const { faker } = require('@faker-js/faker'); // Cukup import faker saja
 function generateData(banyakData) {
     const DummyDosen = [];
     const DummyAlumni = [];
+    const DummyProjectMahasiswa = [];
+
+    for (let i = 0; i < banyakData; i++) {
+        DummyProjectMahasiswa.push({
+            judulProject: faker.book.title(),
+            deskripsiSingkatProject: faker.lorem.sentences(3),
+            tagProject: faker.helpers.arrayElements([faker.book.genre(), faker.book.genre(), faker.book.genre()]),
+            prodi: faker.helpers.arrayElement(["S1 - Informatika", "D3 - Sistem Informasi", "S1 - Desain Komunikasi Visual", "S1 - Sistem Informasi Bisnis", "S1 - Desain Produk", "S1 - Manajemen Bisnis Digital", null]),
+            pathFotoSampul: faker.image.url({width: 600, height: 300}) 
+        })
+    }
 
     for (let i = 0; i < banyakData; i++) {
         DummyDosen.push({
@@ -46,7 +57,7 @@ function generateData(banyakData) {
         });
     }
 
-    return { DummyAlumni, DummyDosen }
+    return { DummyAlumni, DummyDosen, DummyProjectMahasiswa }
 }
 
 
