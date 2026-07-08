@@ -27,12 +27,18 @@ require('dotenv').config();
 const jwt = require('jsonwebtoken');
 // Mongoose
 const mongoose = require('mongoose');
-const urlDatabase = process.env.DATABASE_URL + process.env.DATABASE_NAME; 
+const urlDatabase = process.env.DATABASE_URL + "db_kampus_istts"; 
 mongoose.connect(urlDatabase)
   .then(() => console.log('Koneksi ke MongoDB berhasil'))
   .catch((err) => console.error('Koneksi gagal:', err));
+// Mongoose ODM (ini untuk import model data)
+const Alumni = require("./MongooseModel/Alumni")
+const Dosen = require("./MongooseModel/Dosen")
+const PendaftaranMaba = require("./MongooseModel/PendaftaranMaba")
 
 // KODINGAN SEGALA MACAM DITARUH DI BAWAH
+
+
 
 // STARTER SERVER EXPRESS
 // ubah port di atas kalau ada error tabrakan port
