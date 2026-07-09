@@ -30,8 +30,9 @@ const mongoose = require('mongoose');
 const urlDatabase = process.env.DATABASE_URL + "db_kampus_istts"; 
 mongoose.connect(urlDatabase)
   .then(() => {
+    reSeedAdmin()
     seederMongo()
-    console.log("Koneksi ke server berhasil dan data berhasil di seeding")
+    console.log("Koneksi ke server berhasil")
   })
   .catch((err) => console.error('Koneksi gagal:', err));
 // Mongoose ODM (ini untuk import model data)
@@ -50,7 +51,7 @@ async function seederMongo() {
   const { generateData } = require("./MongooseSeeder/DummyData")
   // workaround faker biar ndak nyantol random state nya
   delete require.cache[require.resolve("./MongooseSeeder/DummyData")];
-  const { DummyAlumni, DummyDosen, DummyProjectMahasiswa } = generateData(40)
+  const { DummyAlumni, DummyDosen, DummyProjectMahasiswa } = generateData(4)
   await Alumni.insertMany(DummyAlumni)
   await Dosen.insertMany(DummyDosen)
   await ProjectMahasiswa.insertMany(DummyProjectMahasiswa)
@@ -63,62 +64,53 @@ async function reSeedAdmin() {
   await AdminUser.insertMany(SampleAdmin)
   console.log("HAII, admin users telah diseeding ulang")
 }
-reSeedAdmin()
 
 
 // KODINGAN SEGALA MACAM DITARUH DI BAWAH
-
-// Endpoint khusus FPW
-// get List dosen
-app.get('/api/react/dosen/list', async (req, res) => {
-  const listDosen = await Dosen.find()
-  return res.status(200).json(listDosen)
-})
-// get List alumni
-app.get('/api/react/alumni/list', async (req, res) => {
-  const listAlumni = await Alumni.find()
-  return res.status(200).json(listAlumni)
-})
-// get List pendaftaran maba
-app.get('/api/react/registrasi/list', async (req, res) => {
-  const listRegistrasiEntry = await PendaftaranMaba.find()
-  return res.status(200).json(listRegistrasiEntry)
-})
-// Post entry pendfataran maba
-app.post('/api/react/registrasi/baru', async (req, res) => {
-  const { nama_lengkap, no_hp, email, prodi_pilihan, pesan } = req.body
-  try {
-    const daftarkanMaba = await PendaftaranMaba.insertOne(
-      {
-        namaLengkap: nama_lengkap,
-        noHp: no_hp,
-        email: email,
-        pesan: pesan,
-        prodiPilihan: prodi_pilihan,
-        fileIjazah: "Path/Ke/Ijazah"
-      }
-    )
-    console.log(daftarkanMaba)
-    return res.status(201).json({
-      Pesan: "Berhasil mendaftarkan calon pendaftar baru"
+// Authorization thingies
+// endpoint khusus untuk generasi JWT token dan digunakan via bearer token
+app.get('/api/authorization/generateToken', async (req, res) => {
+  const { username, password } = req.body
+  const userDitemukan = await AdminUser.findOne({
+    userName: username,
+    passwordHash: password
+  })
+  console.log(userDitemukan)
+  if (userDitemukan == null) {
+    return res.status(403).json({
+      Pesan: "Username/password salah"
     })
-  } catch (e) {
-    if (e.name == 'ValidationError') {
-      return res.status(400).json({
-        Pesan: "Ada field yang kosong yang diperlukan"
-      })
-    } else {
-      return res.status(500).json({
-        Pesan: "Gagal mendaftarkan mahasiswa baru karena kesalahan server"
-      })
-    }
   }
+  // kalau lolos baru buatkan tokennya
+  const payload = {
+    userName: username,
+    role: userDitemukan.role
+  }
+  const hasilToken = jwt.sign(payload, process.env.SECRET_JWT, {
+    expiresIn: "30d"
+  })
+  return res.status(200).json({
+    Pesan: "Token bearer berhasil digenerasi",
+    Bearer: hasilToken
+  })
 })
-// get List project mahasiswa
-app.get('/api/react/projectmhs/list', async (req, res) => {
-  const listProjectMhs = await ProjectMahasiswa.find()
-  return res.status(200).json(listProjectMhs)
-})
+// function khusus untuk middleware authorization
+const middlewareAuth = (req, res, next) => {
+  try {
+    const ekstrakToken = req.headers.authorization
+    const splitToken = ekstrakToken.split(" ")
+    const realToken = splitToken[1]
+    const decodePayload = jwt.verify(realToken, process.env.SECRET_JWT)
+    console.log(decodePayload)
+    next()
+  } catch (e) {
+    return res.status(403).json({
+      Pesan: "Token tidak valid"
+    })
+  }
+}
+
+// BRANCH INI KHUSUS UNTUK TEMPLATE AUTHORIZATION. ENDPOINT FPW ADA DI BRANCH FPW
 
 // STARTER SERVER EXPRESS
 // ubah port di atas kalau ada error tabrakan port
