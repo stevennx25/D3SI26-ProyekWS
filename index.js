@@ -109,7 +109,48 @@ app.get('/api/react/alumni/list', async (req, res) => {
   return res.status(200).json(listAlumni)
 })
 
-// Middleware
+// Authorization thingies
+// endpoint khusus untuk generasi JWT token dan digunakan via bearer token
+app.get('/api/authorization/generateToken', async (req, res) => {
+  const { username, password } = req.body
+  const userDitemukan = await AdminUser.findOne({
+    userName: username,
+    passwordHash: password
+  })
+  console.log(userDitemukan)
+  if (userDitemukan == null) {
+    return res.status(403).json({
+      Pesan: "Username/password salah"
+    })
+  }
+  // kalau lolos baru buatkan tokennya
+  const payload = {
+    userName: username,
+    role: userDitemukan.role
+  }
+  const hasilToken = jwt.sign(payload, process.env.SECRET_JWT, {
+    expiresIn: "30d"
+  })
+  return res.status(200).json({
+    Pesan: "Token bearer berhasil digenerasi",
+    Bearer: hasilToken
+  })
+})
+// function khusus untuk middleware authorization
+const middlewareAuth = (req, res, next) => {
+  try {
+    const ekstrakToken = req.headers.authorization
+    const splitToken = ekstrakToken.split(" ")
+    const realToken = splitToken[1]
+    const decodePayload = jwt.verify(realToken, process.env.SECRET_JWT)
+    console.log(decodePayload)
+    next()
+  } catch (e) {
+    return res.status(403).json({
+      Pesan: "Token tidak valid"
+    })
+  }
+}
 
 
 // STEVEN NICANOR XAVIER - 225011706
@@ -198,36 +239,6 @@ app.put('/api/dosen/ubah_prodi_jabatan', async (req, res) => {
 app.get('/api/react/registrasi/list', async (req, res) => {
   const listRegistrasiEntry = await PendaftaranMaba.find()
   return res.status(200).json(listRegistrasiEntry)
-})
-// Post entry pendfataran maba
-app.post('/api/react/registrasi/baru', async (req, res) => {
-  const { nama_lengkap, no_hp, email, prodi_pilihan, pesan } = req.body
-  try {
-    const daftarkanMaba = await PendaftaranMaba.insertOne(
-      {
-        namaLengkap: nama_lengkap,
-        noHp: no_hp,
-        email: email,
-        pesan: pesan,
-        prodiPilihan: prodi_pilihan,
-        fileIjazah: "Path/Ke/Ijazah"
-      }
-    )
-    console.log(daftarkanMaba)
-    return res.status(201).json({
-      Pesan: "Berhasil mendaftarkan calon pendaftar baru"
-    })
-  } catch (e) {
-    if (e.name == 'ValidationError') {
-      return res.status(400).json({
-        Pesan: "Ada field yang kosong yang diperlukan"
-      })
-    } else {
-      return res.status(500).json({
-        Pesan: "Gagal mendaftarkan mahasiswa baru karena kesalahan server"
-      })
-    }
-  }
 })
 
 // STARTER SERVER EXPRESS
