@@ -27,11 +27,13 @@ require('dotenv').config();
 const jwt = require('jsonwebtoken');
 // Mongoose
 const mongoose = require('mongoose');
-const urlDatabase = process.env.DATABASE_URL + "db_kampus_istts"; 
+const urlDatabase = process.env.DATABASE_URL + "db_kampus_istts";
+// Seeding dilakukan sesaat setelah mongoose terkoneksi (matikan seeding ketika tidak diperlukan)
 mongoose.connect(urlDatabase)
   .then(() => {
-    seederMongo()
-    console.log("Koneksi ke server berhasil dan data berhasil di seeding")
+    // seederMongo()
+    // reSeedAdmin()
+    console.log("Koneksi ke server mongodb berhasil")
   })
   .catch((err) => console.error('Koneksi gagal:', err));
 // Mongoose ODM (ini untuk import model data)
@@ -50,7 +52,7 @@ async function seederMongo() {
   const { generateData } = require("./MongooseSeeder/DummyData")
   // workaround faker biar ndak nyantol random state nya
   delete require.cache[require.resolve("./MongooseSeeder/DummyData")];
-  const { DummyAlumni, DummyDosen, DummyProjectMahasiswa } = generateData(40)
+  const { DummyAlumni, DummyDosen, DummyProjectMahasiswa } = generateData(3)
   await Alumni.insertMany(DummyAlumni)
   await Dosen.insertMany(DummyDosen)
   await ProjectMahasiswa.insertMany(DummyProjectMahasiswa)
@@ -63,22 +65,135 @@ async function reSeedAdmin() {
   await AdminUser.insertMany(SampleAdmin)
   console.log("HAII, admin users telah diseeding ulang")
 }
-reSeedAdmin()
-
 
 // KODINGAN SEGALA MACAM DITARUH DI BAWAH
 
-// Endpoint khusus FPW
-// get List dosen
-app.get('/api/react/dosen/list', async (req, res) => {
-  const listDosen = await Dosen.find()
-  return res.status(200).json(listDosen)
+// Rencana nya
+/*
+projectmahasiswas
+get - ambil list project mahasiswa
+post - tambah project mahasiswa (admin only, pakai middleware)
+put - tambah tag project (admin only, middleware)
+delete/ObjectId - hapus project mahasiswa berdasar id (admin only, middleware)
+
+dosens
+get - ambil list dosen
+post - tambah dosen (admin only, pakai middleware)
+put - ubah matkul/prodi ampuan dosen (admin only, middleware)
+delete/ObjectId - hapus dosen (admin only, middleware)
+
+alumnis
+get - ambil list alumni
+post - tambah alumni (admin only, middleware)
+put - 
+delete - hapus alumni
+
+pendaftaranmabas
+get - ambil list entri pendaftaran
+post - buat entry pendaftaran baru (upload ijazah pakai multer)
+put - acc entry pendaftaran
+delete - hapus entry pendaftaran yang invalid (admin only, middleware)
+*/
+// xander ambil pendaftaran mabas, steven ambil dosens
+// michael ambil ??
+
+// endpoint bekas project FPW buatan steven yang free diambil
+// get List project mahasiswa
+app.get('/api/react/projectmhs/list', async (req, res) => {
+  const listProjectMhs = await ProjectMahasiswa.find()
+  return res.status(200).json(listProjectMhs)
 })
 // get List alumni
 app.get('/api/react/alumni/list', async (req, res) => {
   const listAlumni = await Alumni.find()
   return res.status(200).json(listAlumni)
 })
+
+// Middleware
+
+
+// STEVEN NICANOR XAVIER - 225011706
+// get List dosen
+app.get('/api/dosen/list', async (req, res) => {
+  const listDosen = await Dosen.find()
+  return res.status(200).json(listDosen)
+})
+// post dosen baru (admin standard only via middleware authentication)
+app.post('/api/dosen/tambah', async (req, res) => {
+  const { nid, nama, jabatan, prodi, fotoProfil } = req.body
+  try {
+    const dosenBaru = await Dosen.insertOne({
+      nid: nid,
+      nama: nama,
+      jabatan: jabatan,
+      prodi: prodi,
+      fotoProfil: fotoProfil
+    })
+    return res.status(201).json({
+      Pesan: "Dosen baru berhasil ditambahkan",
+      data: dosenBaru
+    })
+  } catch (e) {
+    if (e.name == "ValidationError") {
+      return res.status(400).json({
+        Pesan: "Ada field diperlukan yang kosong/tidak valid"
+      })
+    } else {
+      return res.status(500).json({
+        Pesan: "Kesalahan tidak terduga pada server"
+      })
+    }
+  }
+})
+// put mengubah jabatan/prodi
+app.put('/api/dosen/ubah_prodi_jabatan', async (req, res) => {
+  const { nid } = req.query;
+  const { jabatan, prodi } = req.body;
+  console.log(nid, jabatan, prodi)
+  // cari dulu dosennya
+  const dosenDitemukan = await Dosen.findOne({
+    nid: nid
+  })
+  console.log(dosenDitemukan)
+  if (dosenDitemukan == null) {
+    return res.status(404).json({
+      Pesan: "Dosen tersebut tidak tercatat"
+    })
+  }
+  // kalau dia lolos sampai disini, lakukan pengubahan
+  try {
+    if (jabatan != "", prodi != "") {
+      const ubahProdiJabatan = await Dosen.updateOne({
+        nid: nid
+      }, {
+        jabatan: jabatan
+      })
+    } else if (jabatan != "") {
+      const ubahJabatan = await Dosen.updateOne({
+        nid: nid
+      }, {
+        jabatan: jabatan
+      })
+    } else if (prodi != "") {
+      const ubahProdi = await Dosen.updateOne({
+        prodi: prodi
+      })
+    }
+    return res.status(200).json({})
+  } catch (e) {
+    if (e.name == "ValidationError") {
+      return res.status(400).json({
+        Pesan: "Ada field yang kosong/tidak valid"
+      })
+    } else {
+      return res.status(500).json({
+        Pesan: "Ada error tidak terduga pada server"
+      })
+    }
+  }
+});
+
+// 224011703 ALEXANDER GABRIEL EVAN
 // get List pendaftaran maba
 app.get('/api/react/registrasi/list', async (req, res) => {
   const listRegistrasiEntry = await PendaftaranMaba.find()
@@ -113,11 +228,6 @@ app.post('/api/react/registrasi/baru', async (req, res) => {
       })
     }
   }
-})
-// get List project mahasiswa
-app.get('/api/react/projectmhs/list', async (req, res) => {
-  const listProjectMhs = await ProjectMahasiswa.find()
-  return res.status(200).json(listProjectMhs)
 })
 
 // STARTER SERVER EXPRESS
