@@ -24,18 +24,17 @@ const pendaftaranMabaSchema = new mongoose.Schema({
       type: String,
       required: true,
       trim: true,
+      enum: ["S1 - Informatika", "D3 - Sistem Informasi", "S1 - Desain Komunikasi Visual", "S1 - Sistem Informasi Bisnis", "S1 - Desain Produk", "S1 - Manajemen Bisnis Digital"]
     },
     pesan: {
       type: String,
       trim: true,
       default: "",
     },
-    fileIjazah: {
+    pathFileIjazah: {
       type: String,
       required: true,
-    },
-    namaFileAsli: {
-      type: String,
+      trim: true
     },
     status: {
       type: String,
