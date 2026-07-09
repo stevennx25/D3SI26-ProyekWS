@@ -39,9 +39,9 @@ const Alumni = require("./MongooseModel/Alumni")
 const Dosen = require("./MongooseModel/Dosen")
 const PendaftaranMaba = require("./MongooseModel/PendaftaranMaba")
 const ProjectMahasiswa = require("./MongooseModel/ProjectMahasiswa")
+const AdminUser = require("./MongooseModel/AdminUser")
 // Mongoose seeder manual
 async function seederMongo() {
-  console.log("Seeder manual dijalankan")
   // hapus data dummy yang ada di server
   await Alumni.deleteMany({})
   await Dosen.deleteMany({})
@@ -54,7 +54,17 @@ async function seederMongo() {
   await Alumni.insertMany(DummyAlumni)
   await Dosen.insertMany(DummyDosen)
   await ProjectMahasiswa.insertMany(DummyProjectMahasiswa)
+  console.log("Seeder manual berhasil")
 }
+// *Seeder static khusus admin
+async function reSeedAdmin() {
+  await AdminUser.deleteMany({})
+  const { SampleAdmin } = require("./MongooseSeeder/DummyData")
+  await AdminUser.insertMany(SampleAdmin)
+  console.log("HAII, admin users telah diseeding ulang")
+}
+reSeedAdmin()
+
 
 // KODINGAN SEGALA MACAM DITARUH DI BAWAH
 

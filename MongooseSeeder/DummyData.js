@@ -1,5 +1,17 @@
 // Generasi data pakai Faker JS
-const { faker } = require('@faker-js/faker'); // Cukup import faker saja
+const { faker } = require('@faker-js/faker');
+
+const SampleAdmin = [
+    {
+        userName: "admin",
+        passwordHash: "admin",
+        role: "admin"
+    }, {
+        userName: "root",
+        passwordHash: "root",
+        role: "super-admin"
+    }
+]
 
 function generateData(banyakData) {
     const DummyDosen = [];
@@ -62,5 +74,6 @@ function generateData(banyakData) {
 
 
 module.exports = {
-    generateData
+    generateData,
+    SampleAdmin
 };
