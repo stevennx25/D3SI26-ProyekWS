@@ -1,7 +1,12 @@
 // Model Admin User
 // untuk simpan listing akun Admin
-// { userName, passwordHash }
+// { userName, passwordHash, role }
 
+const { ACL } = require("../Authorization/ACL")
+const role = []
+ACL.forEach(entry => {
+  role.push(entry.role)
+});
 const mongoose = require('mongoose');
 const adminUserSchema = new mongoose.Schema({
     userName: {
@@ -15,10 +20,9 @@ const adminUserSchema = new mongoose.Schema({
     },
     role: {
       type: String,
-      enum: ["admin", "super-admin"],
+      enum: role,
       required:true,
       trim: true,
-      lowercase: true
     }
 });
 module.exports = mongoose.model('AdminUser', adminUserSchema);

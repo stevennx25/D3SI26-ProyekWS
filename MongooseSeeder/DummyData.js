@@ -3,12 +3,20 @@ const { faker } = require('@faker-js/faker');
 
 const SampleAdmin = [
     {
-        userName: "admin",
-        passwordHash: "admin",
-        role: "admin"
+        userName: "bu mawar",
+        passwordHash: "mawarpmb",
+        role: "pmb"
     }, {
-        userName: "root",
-        passwordHash: "root",
+        userName: "bu melati",
+        passwordHash: "melatipmb",
+        role: "pmb"
+    }, {
+        userName: "rektor",
+        passwordHash: "rektor",
+        role: "rektorat"
+    }, {
+        userName: "IT",
+        passwordHash: "IT",
         role: "super-admin"
     }
 ]
