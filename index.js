@@ -31,8 +31,8 @@ const urlDatabase = process.env.DATABASE_URL + "db_kampus_istts";
 // Seeding dilakukan sesaat setelah mongoose terkoneksi (matikan seeding ketika tidak diperlukan)
 mongoose.connect(urlDatabase)
   .then(() => {
-    // seederMongo()
-    // reSeedAdmin()
+    seederMongo()
+    reSeedAdmin()
     console.log("Koneksi ke server mongodb berhasil")
   })
   .catch((err) => console.error('Koneksi gagal:', err));
@@ -455,6 +455,94 @@ app.get('/api/registrasi/riwayatAksi', async (req, res) => {
   })
 })
 
+// project mahasiswa CRUD
+app.get('/api/projectmahasiswa/list', async (req, res) => {
+  const listProjectMhs = await ProjectMahasiswa.find()
+  return res.status(200).json(listProjectMhs)
+})
+
+app.post('/api/projectmahasiswa/tambah', middlewareAuth, aclRoleAdmin, async (req, res) => {
+  const { judulProject, deskripsiSingkatProject, tagProject, prodi, pathFotoSampul } = req.body
+  try {
+    const projectBaru = await ProjectMahasiswa.create({
+      judulProject,
+      deskripsiSingkatProject,
+      tagProject: Array.isArray(tagProject)
+        ? tagProject
+        : (tagProject ? tagProject.split(',').map(item => item.trim()).filter(Boolean) : []),
+      prodi,
+      pathFotoSampul
+    })
+    return res.status(201).json({
+      Pesan: "Project mahasiswa berhasil ditambahkan",
+      data: projectBaru
+    })
+  } catch (e) {
+    if (e.name == "ValidationError") {
+      return res.status(400).json({
+        Pesan: "Ada field yang kosong/tidak valid"
+      })
+    }
+    return res.status(500).json({
+      Pesan: "Ada kesalahan tidak terduga pada server"
+    })
+  }
+})
+
+app.put('/api/projectmahasiswa/ubah/:id', middlewareAuth, aclRoleAdmin, async (req, res) => {
+  const { id } = req.params
+  const { judulProject, deskripsiSingkatProject, tagProject, prodi, pathFotoSampul } = req.body
+
+  const projectDitemukan = await ProjectMahasiswa.findOne({ _id: id })
+  if (projectDitemukan == null) {
+    return res.status(404).json({
+      Pesan: "Project mahasiswa tidak ditemukan"
+    })
+  }
+
+  try {
+    const payloadUpdate = {}
+    if (judulProject !== undefined) payloadUpdate.judulProject = judulProject
+    if (deskripsiSingkatProject !== undefined) payloadUpdate.deskripsiSingkatProject = deskripsiSingkatProject
+    if (tagProject !== undefined) payloadUpdate.tagProject = Array.isArray(tagProject)
+      ? tagProject
+      : (tagProject ? tagProject.split(',').map(item => item.trim()).filter(Boolean) : [])
+    if (prodi !== undefined) payloadUpdate.prodi = prodi
+    if (pathFotoSampul !== undefined) payloadUpdate.pathFotoSampul = pathFotoSampul
+
+    if (Object.keys(payloadUpdate).length === 0) {
+      return res.status(400).json({
+        Pesan: "Tidak ada field yang dikirim untuk diubah"
+      })
+    }
+
+    await ProjectMahasiswa.updateOne({ _id: id }, payloadUpdate)
+    const projectTerbaru = await ProjectMahasiswa.findOne({ _id: id })
+    return res.status(200).json({
+      Pesan: "Project mahasiswa berhasil diperbarui",
+      data: projectTerbaru
+    })
+  } catch (e) {
+    return res.status(500).json({
+      Pesan: "Ada kesalahan tidak terduga pada server"
+    })
+  }
+})
+
+app.delete('/api/projectmahasiswa/hapus/:id', middlewareAuth, aclRoleAdmin, async (req, res) => {
+  const { id } = req.params
+  const projectDitemukan = await ProjectMahasiswa.findOne({ _id: id })
+  if (projectDitemukan == null) {
+    return res.status(404).json({
+      Pesan: "Project mahasiswa tidak ditemukan"
+    })
+  }
+
+  await ProjectMahasiswa.deleteOne({ _id: id })
+  return res.status(200).json({
+    Pesan: "Project mahasiswa berhasil dihapus"
+  })
+})
 
 // STARTER SERVER EXPRESS
 // ubah port di atas kalau ada error tabrakan port
