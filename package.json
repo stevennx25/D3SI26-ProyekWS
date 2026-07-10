@@ -20,6 +20,7 @@
   "homepage": "https://github.com/stevennx25/D3SI26-ProyekWS#readme",
   "dependencies": {
     "dotenv": "^17.4.2",
+    "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "mailtrap": "^4.6.1",

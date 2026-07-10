@@ -11,7 +11,8 @@ const ACL = [
         path: [
             "/api/registrasi/list",
             "/api/registrasi/acc/:id",
-            "/api/registrasi/reject/:id"
+            "/api/registrasi/reject/:id",
+            "/api/registrasi/list/export"
         ]
     }, {
         role: "super-admin",

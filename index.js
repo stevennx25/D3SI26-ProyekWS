@@ -80,6 +80,8 @@ const transport = Nodemailer.createTransport(
     testInboxId: 4772803,
   })
 );
+// setup excelJS (Fitur tabahan - Steven)
+const ExcelJS = require('exceljs');
 
 // KODINGAN SEGALA MACAM DITARUH DI BAWAH
 
@@ -321,6 +323,95 @@ app.delete('/api/dosen/hapus', middlewareAuth, aclRoleAdmin, async (req, res) =>
 app.get('/api/registrasi/list', middlewareAuth, aclRoleAdmin, async (req, res) => {
   const listRegistrasiEntry = await PendaftaranMaba.find()
   return res.status(200).json(listRegistrasiEntry)
+})
+// download file xlsx
+app.get('/api/registrasi/list/export', middlewareAuth, aclRoleAdmin, async (req, res) => {
+  try {
+    // 1. Tarik semua data dari collection pendaftaranmabas
+    const listRegistrasi = await PendaftaranMaba.find();
+
+    if (!listRegistrasi || listRegistrasi.length === 0) {
+      return res.status(404).json({
+        Pesan: "Tidak ada data pendaftaran maba yang bisa diekspor."
+      });
+    }
+
+    // 2. Inisialisasi ExcelJS Workbook & Worksheet
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Pendaftaran Maba');
+
+    // 3. Setup Kolom berdasarkan property skema Mongoose kamu persis
+    worksheet.columns = [
+      { header: 'No', key: 'no', width: 5 },
+      { header: 'ID Pendaftaran', key: '_id', width: 28 },
+      { header: 'Nama Lengkap', key: 'namaLengkap', width: 25 },
+      { header: 'Email', key: 'email', width: 25 },
+      { header: 'No HP', key: 'noHp', width: 15 },
+      { header: 'Program Studi Pilihan', key: 'prodiPilihan', width: 30 }, // Diperlebar karena string enum lumayan panjang
+      { header: 'Pesan', key: 'pesan', width: 30 },
+      { header: 'Path File Ijazah', key: 'pathFileIjazah', width: 35 },  // Menyesuaikan field pathFileIjazah
+      { header: 'Status Verifikasi', key: 'status', width: 15 }          // Menyesuaikan field status
+    ];
+
+    // 4. Looping data dan masukkan ke baris Excel
+    listRegistrasi.forEach((maba, index) => {
+      worksheet.addRow({
+        no: index + 1,
+        _id: maba._id.toString(), // Ambil _id bawaan MongoDB, ubah ke string
+        namaLengkap: maba.namaLengkap,
+        email: maba.email,
+        noHp: maba.noHp,
+        prodiPilihan: maba.prodiPilihan, // Mengisi nilai enum prodi
+        pesan: maba.pesan || "",         // Mengikuti default skema kamu yaitu string kosong "" jika tidak diisi
+        pathFileIjazah: maba.pathFileIjazah,
+        status: maba.status              // Mengisi nilai enum status ("menunggu", "diverifikasi", "ditolak")
+      });
+    });
+
+    // 5. Formatting Header (Baris Pertama) agar tebal (Bold)
+    worksheet.getRow(1).font = { bold: true };
+
+    // 6. Set HTTP Header untuk transfer file binary Excel (.xlsx)
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="Data_Pendaftaran_Mabaru_${Date.now()}.xlsx"`
+    );
+
+    // 7. Alirkan data langsung sebagai response stream ke client
+    await workbook.xlsx.write(res);
+    return res.end();
+
+    // ISI DARI LANGKAH 6 & 7 HARUS SEPERTI INI:
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+
+    // Pastikan menggunakan backtick ` dan di dalamnya ada tanda kutip ganda "
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="Data_Pendaftar_Maba_${Date.now()}.xlsx"`
+    );
+
+    // HEADER TAMBAHAN UNTUK API CLIENT SEPERTI HOPPSCOTCH:
+    res.setHeader(
+      'X-Suggested-Filename',
+      `Data_Pendaftar_Maba_${Date.now()}.xlsx`
+    );
+
+    await workbook.xlsx.write(res);
+    return res.end();
+
+  } catch (e) {
+    console.error("Error saat export excel:", e);
+    return res.status(500).json({
+      Pesan: "Ada kesalahan tidak terduga pada server saat memproses file Excel"
+    });
+  }
 })
 // post entry pendaftaran baru
 app.post('/api/registrasi/new', upload.single("scanIjazah"), async (req, res) => {
