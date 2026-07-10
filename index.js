@@ -66,6 +66,20 @@ async function reSeedAdmin() {
   await AdminUser.insertMany(SampleAdmin)
   console.log("HAII, admin users telah diseeding ulang")
 }
+// setup node mailer
+const nodemailer = require('nodemailer');
+// Setup transporter pembawa email (Fiture tambahan - Steven)
+// Disini menggunakan layanan dari mailtrap sebagai dummy untuk prototyping
+const Nodemailer = require("nodemailer");
+const { MailtrapTransport } = require("mailtrap");
+const TOKEN = process.env.TOKEN_MAILTRAP;
+const transport = Nodemailer.createTransport(
+  MailtrapTransport({
+    token: TOKEN,
+    sandbox: true,
+    testInboxId: 4772803,
+  })
+);
 
 // KODINGAN SEGALA MACAM DITARUH DI BAWAH
 
@@ -152,7 +166,7 @@ const middlewareAuth = (req, res, next) => {
     console.log(decodePayload.role, decodePayload.ObjectId)
     next()
   } catch (e) {
-    console.log(e)
+    // console.log(e)
     return res.status(403).json({
       Pesan: "Token tidak valid"
     })
@@ -324,10 +338,36 @@ app.post('/api/registrasi/new', upload.single("scanIjazah"), async (req, res) =>
       pesan: pesan,
       pathFileIjazah: pathAman
     })
+    // kirimkan emailnya ke MailTrap via transporter
+    // GUNAKAN 'transport' (sesuai nama variabel SDK Mailtrap Anda)
+    const kirimMail = await transport.sendMail({
+      from: {
+        address: "admin@kampus-test.com",
+        name: "Panitia PMB Kampus"
+      },
+      to: [email], // SDK Mailtrap biasanya meminta format Array [] untuk penerima
+      subject: 'Pernyataan Pendaftaran Mahasiswa Baru Berhasil',
+      // Gunakan properti html di sini
+      html: `
+        <h3>Halo, ${namaLengkap}!</h3>
+        <p>Terima kasih telah melakukan registrasi online di sistem kami.</p>
+        <p>Berikut adalah detail pendaftaran Anda:</p>
+        <ul>
+          <li><strong>Program Studi:</strong> ${prodiPilihan}</li>
+          <li><strong>No. HP:</strong> ${noHp}</li>
+        </ul>
+        <p>Berkas ijazah Anda sedang dalam tahap verifikasi oleh tim administrasi.</p>
+        <br>
+        <p>Salam hangat,<br><strong>Panitia PMB</strong></p>
+      `,
+      category: "Pendaftaran Maba" // Fitur bawaan SDK Mailtrap
+    });
+    console.log("Mailtrap info:", kirimMail);
     return res.status(201).json({
       Pesan: "Entry pendaftaran telah dibuat"
     })
   } catch (e) {
+    console.log(e)
     if (e.name == "ValidationError") {
       console.log(e)
       return res.status(400).json({
@@ -463,7 +503,7 @@ app.get('/api/projectmahasiswa/list', async (req, res) => {
 })
 
 app.post('/api/projectmahasiswa/tambah', middlewareAuth, aclRoleAdmin, async (req, res) => {
-  const { judulProject, deskripsiSingkatProject, tagProject, prodi, pathFotoSampul } = req.body
+  const { judulProject, deskripsiSingkatProject, tagProject, prodi } = req.body
   try {
     const projectBaru = await ProjectMahasiswa.create({
       judulProject,
@@ -471,8 +511,7 @@ app.post('/api/projectmahasiswa/tambah', middlewareAuth, aclRoleAdmin, async (re
       tagProject: Array.isArray(tagProject)
         ? tagProject
         : (tagProject ? tagProject.split(',').map(item => item.trim()).filter(Boolean) : []),
-      prodi,
-      pathFotoSampul
+      prodi
     })
     return res.status(201).json({
       Pesan: "Project mahasiswa berhasil ditambahkan",
@@ -492,7 +531,7 @@ app.post('/api/projectmahasiswa/tambah', middlewareAuth, aclRoleAdmin, async (re
 
 app.put('/api/projectmahasiswa/ubah/:id', middlewareAuth, aclRoleAdmin, async (req, res) => {
   const { id } = req.params
-  const { judulProject, deskripsiSingkatProject, tagProject, prodi, pathFotoSampul } = req.body
+  const { judulProject, deskripsiSingkatProject, tagProject, prodi } = req.body
 
   const projectDitemukan = await ProjectMahasiswa.findOne({ _id: id })
   if (projectDitemukan == null) {
@@ -509,7 +548,6 @@ app.put('/api/projectmahasiswa/ubah/:id', middlewareAuth, aclRoleAdmin, async (r
       ? tagProject
       : (tagProject ? tagProject.split(',').map(item => item.trim()).filter(Boolean) : [])
     if (prodi !== undefined) payloadUpdate.prodi = prodi
-    if (pathFotoSampul !== undefined) payloadUpdate.pathFotoSampul = pathFotoSampul
 
     if (Object.keys(payloadUpdate).length === 0) {
       return res.status(400).json({
@@ -524,6 +562,7 @@ app.put('/api/projectmahasiswa/ubah/:id', middlewareAuth, aclRoleAdmin, async (r
       data: projectTerbaru
     })
   } catch (e) {
+    console.log(e)
     return res.status(500).json({
       Pesan: "Ada kesalahan tidak terduga pada server"
     })
