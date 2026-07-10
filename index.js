@@ -55,6 +55,12 @@ async function seederMongo() {
   await Dosen.insertMany(DummyDosen)
   await ProjectMahasiswa.insertMany(DummyProjectMahasiswa)
 }
+// CORS
+const cors = require('cors');
+// Izinkan semua origin, atau tentukan port react Anda
+app.use(cors({
+  origin: 'http://localhost:5173' // Sesuaikan dengan URL React Anda
+}));
 
 // KODINGAN SEGALA MACAM DITARUH DI BAWAH
 
