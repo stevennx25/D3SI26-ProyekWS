@@ -31,8 +31,8 @@ const urlDatabase = process.env.DATABASE_URL + "db_kampus_istts";
 // Seeding dilakukan sesaat setelah mongoose terkoneksi (matikan seeding ketika tidak diperlukan)
 mongoose.connect(urlDatabase)
   .then(() => {
-    seederMongo()
-    reSeedAdmin()
+    // seederMongo()
+    // reSeedAdmin()
     console.log("Koneksi ke server mongodb berhasil")
   })
   .catch((err) => console.error('Koneksi gagal:', err));
@@ -361,7 +361,7 @@ app.put('/api/registrasi/acc/:id', middlewareAuth, aclRoleAdmin, async (req, res
     })
     const logTransaksi = await TransaksiPendaftaranMaba.insertOne({
       idEntry: entryDitemukan._id,
-      status: "diverifikasi",
+      aksi: "diverifikasi",
       idAdmin: objectIdAdmin
     })
     return res.status(200).json({
@@ -393,7 +393,7 @@ app.delete('/api/registrasi/reject/:id', middlewareAuth, aclRoleAdmin, async (re
     })
     const logTransaksi = await TransaksiPendaftaranMaba.insertOne({
       idEntry: entryDitemukan._id,
-      status: "ditolak",
+      aksi: "ditolak",
       idAdmin: objectIdAdmin
     })
     return res.status(200).json({
@@ -455,6 +455,7 @@ app.get('/api/registrasi/riwayatAksi', async (req, res) => {
   })
 })
 
+// MICHAEL HERONIMUS
 // project mahasiswa CRUD
 app.get('/api/projectmahasiswa/list', async (req, res) => {
   const listProjectMhs = await ProjectMahasiswa.find()
