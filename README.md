@@ -1,43 +1,11 @@
-# Repository Project WS D3 SI 2026
-Project WS ini akan digunakan sebagai backend untuk FPW juga
+# Project WS D3 SI 2026
 
-Kriteria :
-> Kriteria Proyek
-> 
-> Tema bebas
->
-> [10 poin] Endpoint dengan get post put delete (masing-masing minimal 1)
-> 
-> [5 poin] Http code dan error handling
-> 
-> [10 poin] 3rd party API minimal 1, kembar antar kelompok maksimal 2 kelompok
-> 
-> [10 poin] API ada authentication dan authorization
-> 
-> [10 poin] Payment model (pay per use, subscription, dll)
-> 
-> [10 poin] API documentation menggunakan postman/swagger
-> 
-> [10 poin] upload file menggunakan multer
-> 
-> [5 poin] Input validation menggunakan Joi
-> 
-> [5 poin] Di-hosting
-> 
-> [10 poin] Migration dan Seeder 
-> 
-> Total 85
->
->Nilai kreasi/tambahan misal menggunakan library, git, CI/CD, dst
->Setiap tambahan mendapatkan nilai sekitar 5 (bisa lebih tergantung tingkat kesulitan), jadi harus buat 3 tambahan supaya dapat 15
-Total 15
->
->Kriteria wajib (tidak dikerjakan nilai /2)
-> - Harus ada CRUD ke master
-> - Harus ada transaksi (header detail)
-> - Wajib pakai ORM (bila menggunakan MySQL dan Sequelize) atau mongoose kalua pakai mongodb
-> - Setiap masing-masing anggota kelompok wajib membuat  get post put delete (masing-masing minimal 1), jadi misal dalam dalam 1 kelompok ada 4 orang berarti minimal total jumlah endpoint adalah 16
+Project ini adalah project yang kami buat sebagai tugas akhir dari mata kuliah Web Services ISTTS 2026. Dalam project ini kami membuat endpoint umum untuk sebuah kampus
 
-Konfigurasi awal sudah ada, tinggal bikin endpoint aja
+Anggota kelompok kami :
+224011703 	ALEXANDER GABRIEL EVAN
+224011704 	MICHAEL HERONIMUS RENGKUAN
+225011706 	STEVEN NICANOR XAVIER
 
-**PAT ikuti yang ada di project WS**
+Dokumentasi endpoint
+https://api-docs.hoppscotch.io/view/0d0f9ba5-2fbf-45e8-901a-a0751920f09a
