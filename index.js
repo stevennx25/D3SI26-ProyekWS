@@ -32,6 +32,7 @@ const urlDatabase = process.env.DATABASE_URL + "db_kampus_istts";
 mongoose
   .connect(urlDatabase)
   .then(() => {
+    // NYALAKAN MATIKAN RESEEDER DISINI
     // seederMongo()
     // reSeedAdmin()
     console.log("Koneksi ke server mongodb berhasil");
@@ -44,20 +45,26 @@ const PendaftaranMaba = require("./MongooseModel/PendaftaranMaba");
 const ProjectMahasiswa = require("./MongooseModel/ProjectMahasiswa");
 const AdminUser = require("./MongooseModel/AdminUser");
 const TransaksiPendaftaranMaba = require("./MongooseModel/TransaksiPendaftaranMaba");
+const Mahasiswa = require("./MongooseModel/Mahasiswa")
+const WalletMahasiswa = require("./MongooseModel/WalletMahasiswa")
 // Mongoose seeder manual
 async function seederMongo() {
   // hapus data dummy yang ada di server
   await Alumni.deleteMany({});
   await Dosen.deleteMany({});
   await ProjectMahasiswa.deleteMany({});
+  await Mahasiswa.deleteMany({});
+  await WalletMahasiswa.deleteMany({});
   // seeding
   const { generateData } = require("./MongooseSeeder/DummyData");
   // workaround faker biar ndak nyantol random state nya
   delete require.cache[require.resolve("./MongooseSeeder/DummyData")];
-  const { DummyAlumni, DummyDosen, DummyProjectMahasiswa } = generateData(3);
+  const { DummyAlumni, DummyDosen, DummyProjectMahasiswa, DummyMahasiswa, DummyWalletMahasiswa } = generateData(3);
   await Alumni.insertMany(DummyAlumni);
   await Dosen.insertMany(DummyDosen);
   await ProjectMahasiswa.insertMany(DummyProjectMahasiswa);
+  await Mahasiswa.insertMany(DummyMahasiswa);             // Tambahkan ini
+  await WalletMahasiswa.insertMany(DummyWalletMahasiswa); // Tambahkan ini
   console.log("Seeder manual berhasil");
 }
 // *Seeder static khusus admin
@@ -69,47 +76,6 @@ async function reSeedAdmin() {
 }
 
 // KODINGAN SEGALA MACAM DITARUH DI BAWAH
-
-// Rencana nya
-/*
-projectmahasiswas
-get - ambil list project mahasiswa
-post - tambah project mahasiswa (admin only, pakai middleware)
-put - tambah tag project (admin only, middleware)
-delete/ObjectId - hapus project mahasiswa berdasar id (admin only, middleware)
-
-dosens
-get - ambil list dosen
-post - tambah dosen (admin only, pakai middleware)
-put - ubah matkul/prodi ampuan dosen (admin only, middleware)
-delete/ObjectId - hapus dosen (admin only, middleware)
-
-alumnis
-get - ambil list alumni
-post - tambah alumni (admin only, middleware)
-put - 
-delete - hapus alumni
-
-pendaftaranmabas
-get - ambil list entri pendaftaran
-post - buat entry pendaftaran baru (upload ijazah pakai multer)
-put - acc entry pendaftaran
-delete - hapus entry pendaftaran yang invalid (admin only, middleware)
-*/
-// xander ambil pendaftaran mabas, steven ambil dosens
-// michael ambil ??
-
-// endpoint bekas project FPW buatan steven yang free diambil
-// get List project mahasiswa
-app.get("/api/react/projectmhs/list", async (req, res) => {
-  const listProjectMhs = await ProjectMahasiswa.find();
-  return res.status(200).json(listProjectMhs);
-});
-// get List alumni
-app.get("/api/react/alumni/list", async (req, res) => {
-  const listAlumni = await Alumni.find();
-  return res.status(200).json(listAlumni);
-});
 
 // Authorization thingies
 // endpoint khusus untuk generasi JWT token dan digunakan via bearer token
@@ -553,13 +519,7 @@ app.get("/api/projectmahasiswa/openalex/search", async (req, res) => {
         work.authorships && work.authorships[0]?.institutions
           ? work.authorships[0].institutions.map((i) => i.display_name)
           : [],
-    }));
-
-    app.get("/api/projectmahasiswa/list", async (req, res) => {
-      const listProjectMhs = await ProjectMahasiswa.find();
-      return res.status(200).json(listProjectMhs);
-    });
-
+    }));  
     return res.status(200).json({
       Pesan: `Berhasil mendapatkan ${hasilSederhana.length} referensi ilmiah dari OpenAlex`,
       totalHasil: data.meta.count,
@@ -571,6 +531,12 @@ app.get("/api/projectmahasiswa/openalex/search", async (req, res) => {
       Pesan: "Ada kesalahan tidak terduga saat menghubungi OpenAlex API",
     });
   }
+});
+
+// end point list project mahasiswa dikeluarkan dari endpoint 3rd party open alex
+app.get("/api/projectmahasiswa/list", async (req, res) => {
+  const listProjectMhs = await ProjectMahasiswa.find();
+  return res.status(200).json(listProjectMhs);
 });
 
 app.post(
@@ -695,6 +661,127 @@ app.delete(
     });
   },
 );
+
+app.get("/api/mahasiswa/wallet/:idMahasiswa", async (req, res) => {
+  const { idMahasiswa } = req.params;
+
+  try {
+    // Validasi apakah format ObjectId valid agar server tidak crash
+    if (!mongoose.Types.ObjectId.isValid(idMahasiswa)) {
+      return res.status(400).json({ Pesan: "Format ID Mahasiswa tidak valid" });
+    }
+
+    // Cari wallet berdasarkan idMahasiswa
+    const wallet = await WalletMahasiswa.findOne({ idMahasiswa: idMahasiswa });
+    if (!wallet) {
+      return res.status(404).json({ Pesan: "Wallet untuk mahasiswa ini tidak ditemukan" });
+    }
+
+    // Cari profil mahasiswanya sekalian untuk informasi nama & nrp
+    const mhs = await Mahasiswa.findById(idMahasiswa);
+
+    return res.status(200).json({
+      Pesan: "Berhasil mendapatkan data saldo",
+      data: {
+        idMahasiswa: wallet.idMahasiswa,
+        namaMahasiswa: mhs ? mhs.namaMahasiswa : "Nama tidak diketahui",
+        nrpMahasiswa: mhs ? mhs.nrpMahasiswa : "-",
+        saldo: wallet.saldo
+      }
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ Pesan: "Ada kesalahan tidak terduga pada server" });
+  }
+});
+
+// 2. Endpoint untuk mengisi (top up) saldo mahasiswa berdasarkan ID object mahasiswa
+app.put("/api/mahasiswa/wallet/topup", middlewareAuth, aclRoleAdmin, async (req, res) => {
+  const { idMahasiswa, jumlah } = req.body;
+
+  if (!idMahasiswa || jumlah === undefined) {
+    return res.status(400).json({ Pesan: "Field idMahasiswa dan jumlah wajib diisi" });
+  }
+
+  const nominal = Number(jumlah);
+  if (isNaN(nominal) || nominal <= 0) {
+    return res.status(400).json({ Pesan: "Jumlah top up harus berupa angka dan lebih besar dari 0" });
+  }
+
+  try {
+    if (!mongoose.Types.ObjectId.isValid(idMahasiswa)) {
+      return res.status(400).json({ Pesan: "Format ID Mahasiswa tidak valid" });
+    }
+
+    // Gunakan $inc (increment) untuk menjumlahkan saldo secara atomis di MongoDB
+    const walletTerupdate = await WalletMahasiswa.findOneAndUpdate(
+      { idMahasiswa: idMahasiswa },
+      { $inc: { saldo: nominal } }, // ini workaround di racae condition dimana 2 saldo masuk bareng
+      { new: true, runValidators: true } // new: true mengembalikan data setelah di-update
+    );
+
+    if (!walletTerupdate) {
+      return res.status(404).json({ Pesan: "Wallet tidak ditemukan, top up gagal" });
+    }
+
+    return res.status(200).json({
+      Pesan: "Top up saldo berhasil",
+      saldoTerbaru: walletTerupdate.saldo
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ Pesan: "Ada kesalahan tidak terduga pada server" });
+  }
+});
+
+// 3. Endpoint untuk mengurangi saldo mahasiswa berdasarkan ID object mahasiswa
+app.put("/api/mahasiswa/wallet/pay", async (req, res) => {
+  const { idMahasiswa, jumlah } = req.body;
+
+  if (!idMahasiswa || jumlah === undefined) {
+    return res.status(400).json({ Pesan: "Field idMahasiswa dan jumlah wajib diisi" });
+  }
+
+  const nominal = Number(jumlah);
+  if (isNaN(nominal) || nominal <= 0) {
+    return res.status(400).json({ Pesan: "Jumlah pengurangan harus berupa angka dan lebih besar dari 0" });
+  }
+
+  try {
+    if (!mongoose.Types.ObjectId.isValid(idMahasiswa)) {
+      return res.status(400).json({ Pesan: "Format ID Mahasiswa tidak valid" });
+    }
+
+    // Ambil data wallet terlebih dahulu untuk cek kecukupan saldo
+    const wallet = await WalletMahasiswa.findOne({ idMahasiswa: idMahasiswa });
+    if (!wallet) {
+      return res.status(404).json({ Pesan: "Wallet tidak ditemukan" });
+    }
+
+    // Validasi manual agar tidak melanggar aturan min: 0 di Schema Mongoose Anda
+    if (wallet.saldo - nominal < 0) {
+      return res.status(400).json({ 
+        Pesan: "Transaksi gagal, saldo tidak mencukupi!", 
+        saldoSekarang: wallet.saldo 
+      });
+    }
+
+    // Kurangi saldo dengan memberikan nilai negatif ke operator $inc
+    const walletTerupdate = await WalletMahasiswa.findOneAndUpdate(
+      { idMahasiswa: idMahasiswa },
+      { $inc: { saldo: -nominal } },
+      { new: true, runValidators: true }
+    );
+
+    return res.status(200).json({
+      Pesan: "Pengurangan saldo berhasil",
+      saldoTerbaru: walletTerupdate.saldo
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ Pesan: "Ada kesalahan tidak terduga pada server" });
+  }
+});
 
 // STARTER SERVER EXPRESS
 // ubah port di atas kalau ada error tabrakan port
