@@ -90,6 +90,9 @@ const transport = Nodemailer.createTransport(
 );
 // setup excelJS (Fitur tabahan - Steven)
 const ExcelJS = require('exceljs');
+// JOI
+const Joi = require('joi');
+const { registrasiSchema } = require("./JoiSchema/RegistrasiSchema")
 
 // KODINGAN SEGALA MACAM DITARUH DI BAWAH
 
@@ -212,6 +215,7 @@ app.post(
           Pesan: "Ada field diperlukan yang kosong/tidak valid",
         });
       } else {
+        console.log(e)
         return res.status(500).json({
           Pesan: "Kesalahan tidak terduga pada server",
         });
@@ -421,12 +425,27 @@ app.get('/api/registrasi/list/export', middlewareAuth, aclRoleAdmin, async (req,
 
 // post entry pendaftaran baru
 app.post('/api/registrasi/new', upload.single("scanIjazah"), async (req, res) => {
-  const { namaLengkap, email, noHp, prodiPilihan, pesan } = req.body
-  const fileIjazah = req.file
   try {
+    if (!req.file) {
+      return res.status(400).json({
+        Pesan: "Ijazah belum diunggah"
+      });
+    }
+    const fileIjazah = req.file
     // Workaround path bawaan multer
     const pathAman = req.file.path.replace(/\\/g, '/');
     console.log(fileIjazah, pathAman)
+    // Validasi JOI
+    const { error, value } = registrasiSchema.validate(req.body, { abortEarly: false });
+    if (error) {
+      // Mengambil semua pesan error dan menggabungkannya ke dalam array
+      const pesanError = error.details.map(err => err.message);
+      return res.status(400).json({
+        Pesan: "Ada field kosong atau tidak valid",
+        Detail: pesanError
+      });
+    }
+    const { namaLengkap, email, noHp, prodiPilihan, pesan } = req.body
     const tambahEntryRegMaba = await PendaftaranMaba.insertOne({
       namaLengkap: namaLengkap,
       email: email,
