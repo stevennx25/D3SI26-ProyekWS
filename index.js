@@ -145,25 +145,40 @@ const middlewareAuth = (req, res, next) => {
 const { ACL } = require("./Authorization/ACL");
 const aclRoleAdmin = (req, res, next) => {
   const hasilRole = req.extractedRole;
-  var aclGetRole;
-  var pathCocok;
-  ACL.forEach((entry) => {
-    if (entry.role == hasilRole) {
-      aclGetRole = entry;
+  console.log(hasilRole)
+  try {
+    var aclGetRole;
+    var pathCocok;
+    let roleDitemukan = false
+    ACL.forEach((entry) => {
+      if (entry.role == hasilRole) {
+        aclGetRole = entry;
+        roleDitemukan = true
+      }
+    });
+    if (roleDitemukan == false) {
+      return res.status(403).json({
+        Pesan: "Anda tidak terdaftar sebagai admin"
+      })
     }
-  });
-  console.log(aclGetRole);
-  aclGetRole.path.forEach((elem) => {
-    if (elem == req.route.path || elem == req.path || elem == "*") {
-      pathCocok = true;
+    console.log(aclGetRole);
+    aclGetRole.path.forEach((elem) => {
+      if (elem == req.route.path || elem == req.path || elem == "*") {
+        pathCocok = true;
+      }
+    });
+    if (pathCocok) {
+      return next();
     }
-  });
-  if (pathCocok) {
-    return next();
+    return res.status(403).json({
+      Pesan: "Role anda tidak dapat mengakses endpoint ini",
+    });
+  } catch (e) {
+    console.log(e)
+    return res.status(500).json({
+      Pesan: "Terjadi error tidak terduga pada server"
+    })
   }
-  return res.status(403).json({
-    Pesan: "Role anda tidak dapat mengakses endpoint ini",
-  });
 };
 
 // STEVEN NICANOR XAVIER - 225011706
