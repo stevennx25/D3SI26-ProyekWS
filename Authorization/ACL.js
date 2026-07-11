@@ -15,6 +15,11 @@ const ACL = [
             "/api/registrasi/list/export"
         ]
     }, {
+        role: "kemahasiswaan",
+        path: [
+            "/api/mahasiswa/wallet/topup"
+        ]
+    },{
         role: "super-admin",
         path: [
             "*"
