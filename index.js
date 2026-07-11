@@ -403,6 +403,7 @@ app.get('/api/registrasi/list/export', middlewareAuth, aclRoleAdmin, async (req,
     });
   }
 })
+
 // post entry pendaftaran baru
 app.post('/api/registrasi/new', upload.single("scanIjazah"), async (req, res) => {
   const { namaLengkap, email, noHp, prodiPilihan, pesan } = req.body
@@ -459,8 +460,9 @@ app.post('/api/registrasi/new', upload.single("scanIjazah"), async (req, res) =>
         Pesan: "Ada masalah tidak terduga pada server"
       })
     }
-  },
-);
+  }
+})
+
 // put acc pada entry pendaftaran
 app.put(
   "/api/registrasi/acc/:id",
