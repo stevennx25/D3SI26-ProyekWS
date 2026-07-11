@@ -74,6 +74,22 @@ async function reSeedAdmin() {
   await AdminUser.insertMany(SampleAdmin);
   console.log("HAII, admin users telah diseeding ulang");
 }
+// setup node mailer
+const nodemailer = require('nodemailer');
+// Setup transporter pembawa email (Fiture tambahan - Steven)
+// Disini menggunakan layanan dari mailtrap sebagai dummy untuk prototyping
+const Nodemailer = require("nodemailer");
+const { MailtrapTransport } = require("mailtrap");
+const TOKEN = process.env.TOKEN_MAILTRAP;
+const transport = Nodemailer.createTransport(
+  MailtrapTransport({
+    token: TOKEN,
+    sandbox: true,
+    testInboxId: 4772803,
+  })
+);
+// setup excelJS (Fitur tabahan - Steven)
+const ExcelJS = require('exceljs');
 
 // KODINGAN SEGALA MACAM DITARUH DI BAWAH
 
@@ -119,7 +135,7 @@ const middlewareAuth = (req, res, next) => {
     console.log(decodePayload.role, decodePayload.ObjectId);
     next();
   } catch (e) {
-    console.log(e);
+    // console.log(e);
     return res.status(403).json({
       Pesan: "Token tidak valid",
     });
@@ -294,48 +310,154 @@ app.delete(
 
 // 224011703 ALEXANDER GABRIEL EVAN
 // get List pendaftaran maba
-app.get(
-  "/api/registrasi/list",
-  middlewareAuth,
-  aclRoleAdmin,
-  async (req, res) => {
-    const listRegistrasiEntry = await PendaftaranMaba.find();
-    return res.status(200).json(listRegistrasiEntry);
-  },
-);
+app.get('/api/registrasi/list', middlewareAuth, aclRoleAdmin, async (req, res) => {
+  const listRegistrasiEntry = await PendaftaranMaba.find()
+  return res.status(200).json(listRegistrasiEntry)
+})
+// download file xlsx
+app.get('/api/registrasi/list/export', middlewareAuth, aclRoleAdmin, async (req, res) => {
+  try {
+    // 1. Tarik semua data dari collection pendaftaranmabas
+    const listRegistrasi = await PendaftaranMaba.find();
+
+    if (!listRegistrasi || listRegistrasi.length === 0) {
+      return res.status(404).json({
+        Pesan: "Tidak ada data pendaftaran maba yang bisa diekspor."
+      });
+    }
+
+    // 2. Inisialisasi ExcelJS Workbook & Worksheet
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Pendaftaran Maba');
+
+    // 3. Setup Kolom berdasarkan property skema Mongoose kamu persis
+    worksheet.columns = [
+      { header: 'No', key: 'no', width: 5 },
+      { header: 'ID Pendaftaran', key: '_id', width: 28 },
+      { header: 'Nama Lengkap', key: 'namaLengkap', width: 25 },
+      { header: 'Email', key: 'email', width: 25 },
+      { header: 'No HP', key: 'noHp', width: 15 },
+      { header: 'Program Studi Pilihan', key: 'prodiPilihan', width: 30 }, // Diperlebar karena string enum lumayan panjang
+      { header: 'Pesan', key: 'pesan', width: 30 },
+      { header: 'Path File Ijazah', key: 'pathFileIjazah', width: 35 },  // Menyesuaikan field pathFileIjazah
+      { header: 'Status Verifikasi', key: 'status', width: 15 }          // Menyesuaikan field status
+    ];
+
+    // 4. Looping data dan masukkan ke baris Excel
+    listRegistrasi.forEach((maba, index) => {
+      worksheet.addRow({
+        no: index + 1,
+        _id: maba._id.toString(), // Ambil _id bawaan MongoDB, ubah ke string
+        namaLengkap: maba.namaLengkap,
+        email: maba.email,
+        noHp: maba.noHp,
+        prodiPilihan: maba.prodiPilihan, // Mengisi nilai enum prodi
+        pesan: maba.pesan || "",         // Mengikuti default skema kamu yaitu string kosong "" jika tidak diisi
+        pathFileIjazah: maba.pathFileIjazah,
+        status: maba.status              // Mengisi nilai enum status ("menunggu", "diverifikasi", "ditolak")
+      });
+    });
+
+    // 5. Formatting Header (Baris Pertama) agar tebal (Bold)
+    worksheet.getRow(1).font = { bold: true };
+
+    // 6. Set HTTP Header untuk transfer file binary Excel (.xlsx)
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="Data_Pendaftaran_Mabaru_${Date.now()}.xlsx"`
+    );
+
+    // 7. Alirkan data langsung sebagai response stream ke client
+    await workbook.xlsx.write(res);
+    return res.end();
+
+    // ISI DARI LANGKAH 6 & 7 HARUS SEPERTI INI:
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+
+    // Pastikan menggunakan backtick ` dan di dalamnya ada tanda kutip ganda "
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="Data_Pendaftar_Maba_${Date.now()}.xlsx"`
+    );
+
+    // HEADER TAMBAHAN UNTUK API CLIENT SEPERTI HOPPSCOTCH:
+    res.setHeader(
+      'X-Suggested-Filename',
+      `Data_Pendaftar_Maba_${Date.now()}.xlsx`
+    );
+
+    await workbook.xlsx.write(res);
+    return res.end();
+
+  } catch (e) {
+    console.error("Error saat export excel:", e);
+    return res.status(500).json({
+      Pesan: "Ada kesalahan tidak terduga pada server saat memproses file Excel"
+    });
+  }
+})
 // post entry pendaftaran baru
-app.post(
-  "/api/registrasi/new",
-  upload.single("scanIjazah"),
-  async (req, res) => {
-    const { namaLengkap, email, noHp, prodiPilihan, pesan } = req.body;
-    const fileIjazah = req.file;
-    try {
-      // Workaround path bawaan multer
-      const pathAman = req.file.path.replace(/\\/g, "/");
-      console.log(fileIjazah, pathAman);
-      const tambahEntryRegMaba = await PendaftaranMaba.insertOne({
-        namaLengkap: namaLengkap,
-        email: email,
-        noHp: noHp,
-        prodiPilihan: prodiPilihan,
-        pesan: pesan,
-        pathFileIjazah: pathAman,
-      });
-      return res.status(201).json({
-        Pesan: "Entry pendaftaran telah dibuat",
-      });
-    } catch (e) {
-      if (e.name == "ValidationError") {
-        console.log(e);
-        return res.status(400).json({
-          Pesan: "Ada field kosong/tidak valid",
-        });
-      } else {
-        return res.status(500).json({
-          Pesan: "Ada masalah tidak terduga pada server",
-        });
-      }
+app.post('/api/registrasi/new', upload.single("scanIjazah"), async (req, res) => {
+  const { namaLengkap, email, noHp, prodiPilihan, pesan } = req.body
+  const fileIjazah = req.file
+  try {
+    // Workaround path bawaan multer
+    const pathAman = req.file.path.replace(/\\/g, '/');
+    console.log(fileIjazah, pathAman)
+    const tambahEntryRegMaba = await PendaftaranMaba.insertOne({
+      namaLengkap: namaLengkap,
+      email: email,
+      noHp: noHp,
+      prodiPilihan: prodiPilihan,
+      pesan: pesan,
+      pathFileIjazah: pathAman
+    })
+    // kirimkan emailnya ke MailTrap via transporter
+    // GUNAKAN 'transport' (sesuai nama variabel SDK Mailtrap Anda)
+    const kirimMail = await transport.sendMail({
+      from: {
+        address: "admin@kampus-test.com",
+        name: "Panitia PMB Kampus"
+      },
+      to: [email], // SDK Mailtrap biasanya meminta format Array [] untuk penerima
+      subject: 'Pernyataan Pendaftaran Mahasiswa Baru Berhasil',
+      // Gunakan properti html di sini
+      html: `
+        <h3>Halo, ${namaLengkap}!</h3>
+        <p>Terima kasih telah melakukan registrasi online di sistem kami.</p>
+        <p>Berikut adalah detail pendaftaran Anda:</p>
+        <ul>
+          <li><strong>Program Studi:</strong> ${prodiPilihan}</li>
+          <li><strong>No. HP:</strong> ${noHp}</li>
+        </ul>
+        <p>Berkas ijazah Anda sedang dalam tahap verifikasi oleh tim administrasi.</p>
+        <br>
+        <p>Salam hangat,<br><strong>Panitia PMB</strong></p>
+      `,
+      category: "Pendaftaran Maba" // Fitur bawaan SDK Mailtrap
+    });
+    console.log("Mailtrap info:", kirimMail);
+    return res.status(201).json({
+      Pesan: "Entry pendaftaran telah dibuat"
+    })
+  } catch (e) {
+    console.log(e)
+    if (e.name == "ValidationError") {
+      console.log(e)
+      return res.status(400).json({
+        Pesan: "Ada field kosong/tidak valid"
+      })
+    } else {
+      return res.status(500).json({
+        Pesan: "Ada masalah tidak terduga pada server"
+      })
     }
   },
 );
@@ -485,7 +607,6 @@ app.get("/api/projectmahasiswa/openalex/search", async (req, res) => {
       Pesan: "Parameter query pencarian tidak boleh kosong",
     });
   }
-
   try {
     // Memanggil OpenAlex API untuk mencari works (karya ilmiah)
     // Ditambahkan 'mailto' di query string sebagai bentuk 'polite pool' (sangat disarankan oleh OpenAlex)
@@ -548,8 +669,7 @@ app.post(
       judulProject,
       deskripsiSingkatProject,
       tagProject,
-      prodi,
-      pathFotoSampul,
+      prodi
     } = req.body;
     try {
       const projectBaru = await ProjectMahasiswa.create({
@@ -564,7 +684,6 @@ app.post(
                 .filter(Boolean)
             : [],
         prodi,
-        pathFotoSampul,
       });
       return res.status(201).json({
         Pesan: "Project mahasiswa berhasil ditambahkan",
@@ -594,7 +713,6 @@ app.put(
       deskripsiSingkatProject,
       tagProject,
       prodi,
-      pathFotoSampul,
     } = req.body;
 
     const projectDitemukan = await ProjectMahasiswa.findOne({ _id: id });
@@ -619,8 +737,6 @@ app.put(
                 .filter(Boolean)
             : [];
       if (prodi !== undefined) payloadUpdate.prodi = prodi;
-      if (pathFotoSampul !== undefined)
-        payloadUpdate.pathFotoSampul = pathFotoSampul;
 
       if (Object.keys(payloadUpdate).length === 0) {
         return res.status(400).json({
@@ -698,7 +814,6 @@ app.get("/api/mahasiswa/wallet/:idMahasiswa", async (req, res) => {
 // 2. Endpoint untuk mengisi (top up) saldo mahasiswa berdasarkan ID object mahasiswa
 app.put("/api/mahasiswa/wallet/topup", middlewareAuth, aclRoleAdmin, async (req, res) => {
   const { idMahasiswa, jumlah } = req.body;
-
   if (!idMahasiswa || jumlah === undefined) {
     return res.status(400).json({ Pesan: "Field idMahasiswa dan jumlah wajib diisi" });
   }
