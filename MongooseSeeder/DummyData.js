@@ -19,6 +19,10 @@ const SampleAdmin = [
         userName: "IT",
         passwordHash: "IT",
         role: "super-admin"
+    }, {
+        userName: "bak",
+        passwordHash: "bakadmin",
+        role: "kemahasiswaan"
     }
 ]
 

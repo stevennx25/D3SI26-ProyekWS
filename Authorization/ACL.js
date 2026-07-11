@@ -14,6 +14,11 @@ const ACL = [
             "/api/registrasi/reject/:id"
         ]
     }, {
+        role: "kemahasiswaan",
+        path: [
+            "/api/mahasiswa/wallet/topup"
+        ]
+    },{
         role: "super-admin",
         path: [
             "*"
