@@ -555,6 +555,11 @@ app.get("/api/projectmahasiswa/openalex/search", async (req, res) => {
           : [],
     }));
 
+    app.get("/api/projectmahasiswa/list", async (req, res) => {
+      const listProjectMhs = await ProjectMahasiswa.find();
+      return res.status(200).json(listProjectMhs);
+    });
+
     return res.status(200).json({
       Pesan: `Berhasil mendapatkan ${hasilSederhana.length} referensi ilmiah dari OpenAlex`,
       totalHasil: data.meta.count,
