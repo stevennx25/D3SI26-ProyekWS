@@ -44,17 +44,21 @@ const PendaftaranMaba = require("./MongooseModel/PendaftaranMaba");
 const ProjectMahasiswa = require("./MongooseModel/ProjectMahasiswa");
 const AdminUser = require("./MongooseModel/AdminUser");
 const TransaksiPendaftaranMaba = require("./MongooseModel/TransaksiPendaftaranMaba");
+const Mahasiswa = require("./MongooseModel/Mahasiswa")
+const WalletMahasiswa = require("./MongooseModel/WalletMahasiswa")
 // Mongoose seeder manual
 async function seederMongo() {
   // hapus data dummy yang ada di server
   await Alumni.deleteMany({});
   await Dosen.deleteMany({});
   await ProjectMahasiswa.deleteMany({});
+  await Mahasiswa.deleteMany({});
+  await WalletMahasiswa.deleteMany({});
   // seeding
   const { generateData } = require("./MongooseSeeder/DummyData");
   // workaround faker biar ndak nyantol random state nya
   delete require.cache[require.resolve("./MongooseSeeder/DummyData")];
-  const { DummyAlumni, DummyDosen, DummyProjectMahasiswa } = generateData(3);
+  const { DummyAlumni, DummyDosen, DummyProjectMahasiswa, DummyMahasiswa, DummyWalletMahasiswa } = generateData(3);
   await Alumni.insertMany(DummyAlumni);
   await Dosen.insertMany(DummyDosen);
   await ProjectMahasiswa.insertMany(DummyProjectMahasiswa);
@@ -553,13 +557,7 @@ app.get("/api/projectmahasiswa/openalex/search", async (req, res) => {
         work.authorships && work.authorships[0]?.institutions
           ? work.authorships[0].institutions.map((i) => i.display_name)
           : [],
-    }));
-
-    app.get("/api/projectmahasiswa/list", async (req, res) => {
-      const listProjectMhs = await ProjectMahasiswa.find();
-      return res.status(200).json(listProjectMhs);
-    });
-
+    }));  
     return res.status(200).json({
       Pesan: `Berhasil mendapatkan ${hasilSederhana.length} referensi ilmiah dari OpenAlex`,
       totalHasil: data.meta.count,
@@ -571,6 +569,12 @@ app.get("/api/projectmahasiswa/openalex/search", async (req, res) => {
       Pesan: "Ada kesalahan tidak terduga saat menghubungi OpenAlex API",
     });
   }
+});
+
+// end point list project mahasiswa dikeluarkan dari endpoint 3rd party open alex
+app.get("/api/projectmahasiswa/list", async (req, res) => {
+  const listProjectMhs = await ProjectMahasiswa.find();
+  return res.status(200).json(listProjectMhs);
 });
 
 app.post(

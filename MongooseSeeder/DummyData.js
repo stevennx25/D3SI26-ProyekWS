@@ -1,5 +1,6 @@
 // Generasi data pakai Faker JS
 const { faker } = require('@faker-js/faker');
+const mongoose = require("mongoose");
 
 const SampleAdmin = [
     {
@@ -77,7 +78,37 @@ function generateData(banyakData) {
         });
     }
 
-    return { DummyAlumni, DummyDosen, DummyProjectMahasiswa }
+    const DummyMahasiswa = []
+    const DummyWalletMahasiswa = []
+
+    // generator mahasiswa beserta wallet nya di bawah ini, menggunakan faker
+    // Generator mahasiswa beserta wallet nya
+    for (let i = 0; i < banyakData; i++) {
+        // 1. Generate ObjectId manual agar bisa langsung di-link ke Wallet
+        const mahasiswaId = new mongoose.Types.ObjectId();
+
+        // 2. Logika Pembuatan NRP Unik (Mengikuti aturan alumni Anda)
+        const nomorUrut = (i + 1).toString().padStart(3, '0');
+        const kodeProdi = faker.helpers.arrayElement(["017", "117", "011"]);
+        const tahunAngkatan = faker.number.int({ min: 200, max: 222 }).toString();
+        const nrpUnik = tahunAngkatan + kodeProdi + nomorUrut;
+
+        // 3. Push data ke DummyMahasiswa
+        DummyMahasiswa.push({
+            _id: mahasiswaId, // Kunci utama: pasang ID bikinan kita sendiri
+            namaMahasiswa: faker.person.fullName(),
+            nrpMahasiswa: nrpUnik
+        });
+
+        // 4. Push data ke DummyWalletMahasiswa
+        DummyWalletMahasiswa.push({
+            idMahasiswa: mahasiswaId,
+            saldo: faker.number.int({ min: 10000, max: 500000 }) // Mengisi saldo acak antara 10rb - 500rb
+        });
+    }
+
+
+    return { DummyAlumni, DummyDosen, DummyProjectMahasiswa, DummyMahasiswa, DummyWalletMahasiswa }
 }
 
 
