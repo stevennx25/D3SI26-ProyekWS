@@ -30,7 +30,7 @@ const mongoose = require('mongoose');
 const urlDatabase = process.env.DATABASE_URL + "db_kampus_istts"; 
 mongoose.connect(urlDatabase)
   .then(() => {
-    seederMongo()
+    // seederMongo()
     console.log("Koneksi ke server berhasil dan data berhasil di seeding")
   })
   .catch((err) => console.error('Koneksi gagal:', err));
@@ -115,6 +115,76 @@ app.get('/api/react/projectmhs/list', async (req, res) => {
   const listProjectMhs = await ProjectMahasiswa.find()
   return res.status(200).json(listProjectMhs)
 })
+// registrasi entry pendaftaran
+app.put(
+  "/api/registrasi/acc/:id",
+  async (req, res) => {
+    const objectIdAdmin = req.extractedObjectId;
+    console.log(objectIdAdmin);
+    const id = req.params.id;
+    const entryDitemukan = await PendaftaranMaba.findOne({
+      _id: id,
+    });
+    if (entryDitemukan == null) {
+      return res.status(404).json({
+        Pesan: "Entry ini tidak ditemukan",
+      });
+    }
+    if (entryDitemukan.status == "menunggu") {
+      const accEntry = await PendaftaranMaba.updateOne(
+        {
+          _id: id,
+        },
+        {
+          status: "diverifikasi",
+        },
+      );
+      return res.status(200).json({
+        Pesan: "Entri pendaftaran telah diverifikasi",
+      });
+    } else {
+      return res.status(200).json({
+        Pesan: "Entry telah diverifikasi sebelumnya",
+      });
+    }
+  },
+);
+app.delete(
+  "/api/registrasi/reject/:id",
+  async (req, res) => {
+    const objectIdAdmin = req.extractedObjectId;
+    const id = req.params.id;
+    const entryDitemukan = await PendaftaranMaba.findOne({
+      _id: id,
+    });
+    if (entryDitemukan == null) {
+      return res.status(404).json({
+        Pesan: "Entry ini tidak ditemukan",
+      });
+    }
+    if (entryDitemukan.status == "menunggu") {
+      const accEntry = await PendaftaranMaba.updateOne(
+        {
+          _id: id,
+        },
+        {
+          status: "ditolak",
+        },
+      );
+      return res.status(200).json({
+        Pesan: "Entri pendaftaran telah ditolak",
+      });
+    } else if (entryDitemukan.status == "diverifikasi") {
+      return res.status(409).json({
+        Pesan: "Entry sudah terverifikasi tidak dapat ditolak",
+      });
+    } else {
+      return res.status(200).json({
+        Pesan: "Entry sudah ditolak sebelumnya",
+      });
+    }
+  },
+);
 
 // STARTER SERVER EXPRESS
 // ubah port di atas kalau ada error tabrakan port
